@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmfxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../org.eclipse.tracecompass.tmf.analysis.xml.core/src/org/eclipse/tracecompass/tmf/analysis/xml/core/module/xmlDefinition.xsd">
+	
+<callstack id="lttng.ust.mysqlstack.analysis">
+    			
+    <callstackGroup name="Mysql threads">
+    		<level path="Threads/*" /> 
+                <thread cpu="cpu"/>
+    </callstackGroup>
+
+    <pattern version="1" id="ca.polymtl.mysqlstack">
+        <head>
+            <traceType id="org.eclipse.linuxtools.lttng2.ust.tracetype" />
+            <traceType id="org.eclipse.linuxtools.tmf.core.experiment.generic" />
+            <label value="Mysql callstack" />
+        </head>   
+        
+        <location id="CurrentThread">
+        	<stateAttribute type="constant" value="Threads" />
+		<stateAttribute type="query">
+			<stateAttribute type="constant" value="#CurrentScenario" />
+			<stateAttribute type="constant" value="threadID" />
+		</stateAttribute>
+    	</location>
+    	
+    	
+    	<!-- callstack process="Views/*" thread="Threads/*" callstack="callstack" / -->
+	        
+		<patternHandler>
+		
+			<!-- CONDITIONS -->
+		
+			<!-- Test if the current running thread is equal to the current scenario thread -->
+			
+			
+			
+			<action id="entering_mysql">
+				<!-- Initialize current scenario data: component, type of thread, queries and drawing event counts -->
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="constant" value="threadID" />
+					<stateValue type="eventField" value="context._vtid" forcedType="int"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="eventField" value="context._vtid"/>
+					<stateAttribute type="constant" value="dbconnectionid" />
+					<stateValue type="eventField" value="thread_id" forcedType="int"/>
+				</stateChange>
+			</action>
+			
+			
+			
+			<test id="same_thread">
+				<if>
+				   <and>
+					<condition>
+						<stateValue type="eventField" value="context._vtid" forcedType="int"/>
+						<stateValue type="query">
+							<stateAttribute type="constant" value="#CurrentScenario" />
+							<stateAttribute type="constant" value="threadID" />
+						</stateValue>
+					</condition>
+					<condition>
+						<stateValue type="eventField" value="thread_id" forcedType="int"/>
+						<stateValue type="query">
+							<stateAttribute type="constant" value="#CurrentScenario" />
+							<stateAttribute type="constant" value="connectionid" />
+						</stateValue>
+					</condition>
+				    </and>
+				</if>
+			</test>
+			<test id="same_vthread">
+				<if>
+					<condition>
+						<stateValue type="eventField" value="context._vtid" forcedType="int"/>
+						<stateValue type="query">
+							<stateAttribute type="constant" value="#CurrentScenario" />
+							<stateAttribute type="constant" value="threadID" />
+						</stateValue>
+					</condition>
+				</if>
+			</test>
+	
+			<!-- ACTIONS -->
+	
+			<!-- Actions and test for time graph view threads -->
+			<action id="push_event_type">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" value="funcname" stack="push"/>     
+	            		</stateChange>
+			</action>
+	
+			<action id="pop_event_type">
+				<!-- Pop the current event from the callstack -->
+	                    	<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" value="funcname" stack="pop"/>     
+	            		</stateChange>
+			</action>
+			<action id="entering_request">
+				<!-- Initialize current scenario data: component, type of thread, queries and drawing event counts -->
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="constant" value="threadID" />
+					<stateValue type="eventField" value="context._vtid" forcedType="int"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="constant" value="connectionid" />
+					<stateValue type="eventField" value="thread_id" />
+				</stateChange>
+			</action>
+			<action id="push_event_name">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="script" value="name.replace('_start','').replace('ust_','')" scriptEngine="nashorn" stack="push">
+							<stateValue id="name" type="eventName"/> 
+							
+                			</stateValue>    
+	            		</stateChange>
+			</action>
+			<action id="push_event_name_orig">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventName" stack="push"/>     
+	            		</stateChange>
+			</action>
+			<action id="push_connection">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="string" value="mysql connection" stack="push"/>          
+	            		</stateChange>
+			</action>
+	
+			<action id="pop_event_name">
+				<!-- Pop the current event from the callstack -->
+	                    	<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventName" stack="pop"/>     
+	            		</stateChange>
+			</action>
+			<action id="push_query">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<!--<stateValue type="eventField" value="query" stack="push"/>     -->
+					<stateValue type="string" value="mysql query" stack="push"/>     
+	            		</stateChange>
+			</action>
+			<action id="pop_query">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" stack="pop"/>     
+	            		</stateChange>
+			</action>
+	
+			<!-- FSMs -->
+	
+			<fsm id="MysqlQueries" initial="Wait_start">
+				<state id="Wait_start">
+					<!-- The state will stay here until we have a thread start event -->
+					<transition event="ust_mysql:connection_start" target="in_thread" action="entering_request:push_connection"/>
+					<transition event="ust_mysql:command_start" target="in_thread" action="entering_request:push_event_name"/>
+				</state>
+				<state id="in_thread" >
+					<!-- The state will loop on itself until the thread ends and increment the operations that happen during the execution -->
+					<transition event="ust_mysql:command_start" cond="same_vthread" target="in_thread" action="push_event_name"/>
+					<transition event="ust_mysql:command_done" cond="same_vthread" target="in_thread" action="pop_event_name"/>
+					<transition event="ust_mysql:query_start" cond="same_vthread" target="in_thread" action="push_query"/>
+					<transition event="ust_mysql:query_done" cond="same_vthread" target="in_thread" action="pop_query"/>
+					<transition event="ust_mysql:query_exec_start" cond="same_vthread" target="in_thread" action="push_event_name"/>
+					<transition event="ust_mysql:query_exec_done" cond="same_vthread" target="in_thread" action="pop_event_name"/>
+
+					<transition event="ust_mysql:query_parse_start" cond="same_vthread" target="in_thread" action="push_event_name"/>
+					<transition event="ust_mysql:query_parse_done" cond="same_vthread" target="in_thread" action="pop_event_name"/>
+					
+					<transition event="ust_mysql:net_*_start" cond="same_vthread" target="in_thread" action="push_event_name"/>
+					<transition event="ust_mysql:net_*_done" cond="same_vthread" target="in_thread" action="pop_event_name"/>
+
+					<transition event="ust_mysql:connection_done" cond="same_vthread" target="end_thread" action="pop_event_name" />				
+				</state>
+				<final id="end_thread"/>
+			</fsm>
+			
+	
+		</patternHandler>
+	</pattern>
+</callstack>	
+</tmfxml>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmfxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../org.eclipse.tracecompass.tmf.analysis.xml.core/src/org/eclipse/tracecompass/tmf/analysis/xml/core/module/xmlDefinition.xsd">
+<callstack id="lttng.ust.apachemodules.analysis">
+ <callstackGroup name="Apache Modules">
+    		<level path="Threads/*" /> 
+                <thread cpu="cpu"/>
+        </callstackGroup>
+
+    <pattern version="1" id="ca.polymtl.apachemodules">
+        <head>
+            <traceType id="org.eclipse.linuxtools.lttng2.ust.tracetype" />
+            <traceType id="org.eclipse.linuxtools.tmf.core.experiment.generic" />
+            <label value="Apache modules analysis" />
+        </head>   
+        
+        <location id="CurrentThread">
+        	<stateAttribute type="constant" value="Threads" />
+		<stateAttribute type="query">
+			<stateAttribute type="constant" value="#CurrentScenario" />
+			<stateAttribute type="constant" value="threadID" />
+		</stateAttribute>
+    	</location>
+    	
+    	<!-- callstack process="Views/*" thread="Threads/*" callstack="callstack" / -->
+	        
+		<patternHandler>
+		
+			<!-- CONDITIONS -->
+		
+			<!-- Test if the current running thread is equal to the current scenario thread -->
+			
+
+	
+			<!-- ACTIONS -->
+	
+			<!-- Actions and test for time graph view threads -->
+			
+			<action id="entering_request">
+				<!-- Initialize current scenario data: component, type of thread, queries and drawing event counts -->
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="constant" value="threadID" />
+					<stateValue  type="int" value="1"/>
+				</stateChange>
+			</action>
+			<action id="exiting_request">
+				<!-- Initialize current scenario data: component, type of thread, queries and drawing event counts -->
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario" />
+					<stateAttribute type="constant" value="threadID" />
+					<stateValue type="eventName" stack="pop"/>
+				</stateChange>
+			</action>
+			<action id="push_event_field">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+					<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" value="name" stack="push" />
+				</stateChange>
+			</action>
+			<action id="push_module">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+					<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" value="src" stack="push" />
+				</stateChange>
+			</action>
+			<action id="pop_module">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+					<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventField" value="src" stack="pop" />
+				</stateChange>
+			</action>
+			<action id="push_event_name">
+				<!-- Push the current event to the thread's callstack -->
+				<stateChange>
+					<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventName" stack="pop"/>
+				</stateChange>
+			</action>
+			<action id="pop_event_name">
+				<!-- Pop the current event from the callstack -->
+	                    	<stateChange>
+	                    		<stateAttribute type="location" value="CurrentThread" />
+	                    		<stateAttribute type="constant" value="CallStack" />
+					<stateValue type="eventName" stack="pop"/>     
+	            		</stateChange>
+			</action>
+	
+			<!-- FSMs -->
+	
+			<fsm id="apachemodules" initial="Wait_start">
+				<state id="Wait_start">
+					<!-- The state will stay here until we have a thread start event -->
+					<transition event="ust_apache:apache_module_entry" target="in_thread" action="entering_request:push_event_field"/>
+				</state>
+				<state id="in_thread" >
+					<!-- The state will loop on itself until the thread ends and increment the operations that happen during the execution -->
+					<transition event="ust_apache:apache_module_invoke" target="in_thread" action="push_module"/>
+					<transition event="ust_apache:apache_module_complete" target="in_thread" action="pop_module"/>
+					<transition event="ust_apache:apache_module_exit" target="end_thread" action="pop_event_name" />				
+				</state>
+				<final id="end_thread"/>
+			</fsm>
+		</patternHandler>
+	</pattern>
+</callstack>
+</tmfxml>
